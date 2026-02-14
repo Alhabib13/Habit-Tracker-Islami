@@ -2,12 +2,11 @@ package com.islami.Aha.ui.splash
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -20,13 +19,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.islami.Aha.R
 import com.islami.Aha.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.sin
@@ -34,18 +35,14 @@ import kotlin.math.sin
 @Composable
 fun SplashScreen(
     viewModel: SplashViewModel = viewModel(),
-    onNavigateToLogin: () -> Unit = {},
     onNavigateToHome: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.shouldNavigate) {
         if (uiState.shouldNavigate) {
-            if (uiState.isUserLoggedIn) {
-                onNavigateToHome()
-            } else {
-                onNavigateToLogin()
-            }
+            onNavigateToHome()
+            viewModel.onNavigationComplete()
         }
     }
 
@@ -88,11 +85,11 @@ fun SplashScreenContent() {
             ),
         contentAlignment = Alignment.Center
     ) {
+        val patternColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.06f)
         // Geometric Islamic pattern overlay
         Canvas(
             modifier = Modifier.fillMaxSize()
         ) {
-            val patternColor = Color.White.copy(alpha = 0.06f)
             val spacing = 80f
             val starSize = 20f
 
@@ -131,18 +128,17 @@ fun SplashScreenContent() {
                     .size(120.dp)
                     .scale(scaleAnim.value),
                 shape = RoundedCornerShape(28.dp),
-                color = SurfaceWhite,
+                color = Color.White,
                 shadowElevation = 16.dp
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    Icon(
-                        imageVector = MosqueIcon,
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
                         contentDescription = "Aha Logo",
-                        tint = Emerald,
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(90.dp)
                     )
                 }
             }
@@ -154,7 +150,7 @@ fun SplashScreenContent() {
                 text = "Aha",
                 fontSize = 56.sp,
                 fontWeight = FontWeight.Bold,
-                color = SurfaceWhite,
+                color = MaterialTheme.colorScheme.onPrimary,
                 letterSpacing = 2.sp
             )
 
@@ -165,7 +161,7 @@ fun SplashScreenContent() {
                 text = "Pelacak Ibadah Islami",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
-                color = SurfaceWhite.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center
             )
 
@@ -176,7 +172,7 @@ fun SplashScreenContent() {
                 text = "Catat, Pantau, Tingkatkan",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Light,
-                color = SurfaceWhite.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
             )
         }
@@ -185,19 +181,13 @@ fun SplashScreenContent() {
         Text(
             text = "Versi 1.0",
             fontSize = 12.sp,
-            color = SurfaceWhite.copy(alpha = 0.5f),
+            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 32.dp)
         )
     }
 }
-
-private val MosqueIcon: ImageVector
-    get() = Icons.Outlined.Mosque
-
-private val Icons.Outlined.Mosque: ImageVector
-    get() = Icons.Outlined.Home
 
 // ============================================================================
 // PREVIEW SECTION

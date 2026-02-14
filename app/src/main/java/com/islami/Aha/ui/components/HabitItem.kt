@@ -1,4 +1,4 @@
-package com.islami.Aha.ui.components
+﻿package com.islami.Aha.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -6,12 +6,18 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,11 +27,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.islami.Aha.R
 import com.islami.Aha.data.model.Habit
 import com.islami.Aha.ui.theme.*
 
@@ -64,10 +73,20 @@ fun HabitItem(
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = habit.icon,
-                        fontSize = 24.sp
-                    )
+                    if (habit.icon == "masjid" || habit.icon == "\uD83D\uDD4C") {
+                        Image(
+                            painter = painterResource(id = R.drawable.masjid),
+                            contentDescription = habit.name,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = mapHabitIcon(habit.icon),
+                            contentDescription = habit.name,
+                            tint = Emerald,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
 
@@ -116,12 +135,22 @@ fun HabitItem(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Selesai",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
             }
         }
+    }
+}
+
+private fun mapHabitIcon(icon: String): ImageVector {
+    return when (icon) {
+        "sunrise", "sun", "\uD83C\uDF05", "\u2600\uFE0F" -> Icons.Filled.WbSunny
+        "cloud", "\u2601\uFE0F" -> Icons.Filled.Cloud
+        "moon", "night", "\uD83C\uDF19", "\uD83C\uDF1C" -> Icons.Filled.DarkMode
+        "plate", "\uD83C\uDF7D\uFE0F" -> Icons.Filled.Restaurant
+        else -> Icons.Outlined.AccessTime
     }
 }
 
@@ -134,13 +163,14 @@ fun HabitItemPreview() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             HabitItem(
-                habit = Habit(1, "Sholat Subuh", "Sholat Fardhu", "\uD83C\uDF05", "04:30 WIB", false),
+                habit = Habit(1, "Sholat Subuh", "Sholat Fardhu", "sunrise", "04:30 WIB", false),
                 onCheckedChange = {}
             )
             HabitItem(
-                habit = Habit(2, "Sholat Dzuhur", "Sholat Fardhu", "\u2600\uFE0F", "11:55 WIB", true),
+                habit = Habit(2, "Sholat Dzuhur", "Sholat Fardhu", "sun", "11:55 WIB", true),
                 onCheckedChange = {}
             )
         }
     }
 }
+

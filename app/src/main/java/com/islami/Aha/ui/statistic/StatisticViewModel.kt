@@ -3,10 +3,14 @@ package com.islami.Aha.ui.statistic
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.islami.Aha.data.local.HabitDao
+import com.islami.Aha.domain.model.SunnahHabit
+import com.islami.Aha.ui.addhabit.SunnahCategoryType
+import com.islami.Aha.ui.shared.SunnahHabitSharedViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -40,12 +44,15 @@ data class StatisticUiState(
     val currentStreak: Int = 0,
     val longestStreak: Int = 0,
     val totalCompleted: Int = 0,
-    val averagePerDay: Float = 0f
+    val averagePerDay: Float = 0f,
+    val sunnahTotal: Int = 0,
+    val sunnahCompleted: Int = 0
 )
 
 @HiltViewModel
 class StatisticViewModel @Inject constructor(
-    private val habitDao: HabitDao
+    private val habitDao: HabitDao,
+    private val sunnahHabitSharedViewModel: SunnahHabitSharedViewModel
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatisticUiState())
@@ -59,26 +66,48 @@ class StatisticViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            habitDao.getHabits().collect { habits ->
-                val todayCompleted = habits.count { it.isCompleted }
-                val todayTotal = habits.size
+            combine(
+                habitDao.getHabits(),
+                sunnahHabitSharedViewModel.sunnahHabits
+            ) { habits, sunnahHabits ->
+                Pair(habits, sunnahHabits)
+            }.collect { (habits, sunnahHabits) ->
+                val fardhuCompleted = habits.count { it.isCompleted }
+                val sunnahCompleted = sunnahHabits.count { it.isCompletedToday }
+                val todayCompleted = fardhuCompleted + sunnahCompleted
+                val todayTotal = habits.size + sunnahHabits.size
                 val todayPercentage = if (todayTotal > 0) (todayCompleted * 100) / todayTotal else 0
 
                 val categoryOrder = listOf("Sholat Fardhu", "Sholat Sunnah", "Puasa Wajib", "Puasa Sunnah")
                 val categoryIcons = mapOf(
-                    "Sholat Fardhu" to "\uD83D\uDD4C",
-                    "Sholat Sunnah" to "\u2600\uFE0F",
-                    "Puasa Wajib" to "\uD83C\uDF7D\uFE0F",
-                    "Puasa Sunnah" to "\uD83C\uDF19"
+                    "Sholat Fardhu" to "masjid",
+                    "Sholat Sunnah" to "sun",
+                    "Puasa Wajib" to "plate",
+                    "Puasa Sunnah" to "moon"
                 )
 
                 val categoryStats = categoryOrder.mapIndexed { index, categoryName ->
                     val categoryHabits = habits.filter { it.category == categoryName }
-                    val completed = categoryHabits.count { it.isCompleted }
-                    val total = categoryHabits.size
+                    var completed = categoryHabits.count { it.isCompleted }
+                    var total = categoryHabits.size
+
+                    // Include user-added sunnah habits in their respective categories
+                    when (categoryName) {
+                        "Sholat Sunnah" -> {
+                            val sunnah = sunnahHabits.filter { it.category == SunnahCategoryType.SHOLAT }
+                            total += sunnah.size
+                            completed += sunnah.count { it.isCompletedToday }
+                        }
+                        "Puasa Sunnah" -> {
+                            val sunnah = sunnahHabits.filter { it.category == SunnahCategoryType.PUASA }
+                            total += sunnah.size
+                            completed += sunnah.count { it.isCompletedToday }
+                        }
+                    }
+
                     CategoryStatistic(
                         name = categoryName,
-                        icon = categoryIcons[categoryName] ?: "\uD83D\uDCCA",
+                        icon = categoryIcons[categoryName] ?: "chart",
                         completedCount = completed,
                         totalCount = total,
                         percentage = if (total > 0) (completed * 100) / total else 0,
@@ -99,7 +128,9 @@ class StatisticViewModel @Inject constructor(
                         currentStreak = 0,
                         longestStreak = 0,
                         totalCompleted = todayCompleted,
-                        averagePerDay = if (todayTotal > 0) todayCompleted.toFloat() else 0f
+                        averagePerDay = if (todayTotal > 0) todayCompleted.toFloat() else 0f,
+                        sunnahTotal = sunnahHabits.size,
+                        sunnahCompleted = sunnahCompleted
                     )
                 }
             }
@@ -107,7 +138,7 @@ class StatisticViewModel @Inject constructor(
     }
 
     private fun getCurrentDateFormatted(): String {
-        val dateFormat = SimpleDateFormat("EEEE, dd MMMM yyyy", Locale("id", "ID"))
+        val dateFormat = SimpleDateFormat("EEEE, dd MMMM yyyy", Locale.forLanguageTag("id-ID"))
         return dateFormat.format(Date())
     }
 

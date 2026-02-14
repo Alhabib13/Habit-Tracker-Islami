@@ -14,5 +14,6 @@ data class Habit(
     val isCompleted: Boolean = false,
     val streak: Int = 0,
     val time: String = "",
-    val isReminderEnabled: Boolean = true
+    val isReminderEnabled: Boolean = true,
+    val isCustom: Boolean = false
 )

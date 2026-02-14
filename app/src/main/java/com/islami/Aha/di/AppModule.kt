@@ -5,6 +5,10 @@ import android.content.SharedPreferences
 import androidx.room.Room
 import com.islami.Aha.data.local.AppDatabase
 import com.islami.Aha.data.local.HabitDao
+import com.islami.Aha.data.local.UserHabitDao
+import com.islami.Aha.data.repository.AuthRepository
+import com.islami.Aha.data.repository.UserHabitRepository
+import com.google.firebase.auth.FirebaseAuth
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,5 +42,32 @@ object AppModule {
     @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
         return context.getSharedPreferences("aha_prefs", Context.MODE_PRIVATE)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserHabitDao(appDatabase: AppDatabase): UserHabitDao {
+        return appDatabase.userHabitDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserHabitRepository(userHabitDao: UserHabitDao): UserHabitRepository {
+        return UserHabitRepository(userHabitDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth {
+        return FirebaseAuth.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        firebaseAuth: FirebaseAuth,
+        sharedPreferences: SharedPreferences
+    ): AuthRepository {
+        return AuthRepository(firebaseAuth, sharedPreferences)
     }
 }

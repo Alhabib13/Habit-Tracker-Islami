@@ -1,131 +1,216 @@
 package com.islami.Aha.ui.addhabit
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.islami.Aha.data.local.HabitDao
-import com.islami.Aha.data.model.Habit
+import com.islami.Aha.ui.shared.SunnahHabitSharedViewModel
+import com.islami.Aha.util.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class HabitCategory(val displayName: String, val icon: String) {
-    SHOLAT_FARDHU("Sholat Fardhu", "🕌"),
-    SHOLAT_SUNNAH("Sholat Sunnah", "🤲"),
-    DZIKIR("Dzikir", "📿"),
-    TILAWAH("Tilawah Al-Quran", "📖"),
-    PUASA("Puasa Sunnah", "🌙"),
-    SEDEKAH("Sedekah", "💝"),
-    DHUHA("Sholat Dhuha", "☀️"),
-    TAHAJUD("Sholat Tahajud", "🌃"),
-    LAINNYA("Lainnya", "✨")
+enum class SunnahCategoryType(val displayName: String) {
+    SHOLAT("Sholat Sunnah"),
+    PUASA("Puasa Sunnah")
 }
 
-enum class HabitFrequency(val displayName: String) {
-    DAILY("Setiap Hari"),
-    WEEKLY("Setiap Minggu"),
-    MONTHLY("Setiap Bulan"),
-    CUSTOM("Kustom")
+enum class FrequencyType(val displayName: String) {
+    EVERY_DAY("Setiap hari"),
+    SPECIFIC_DAYS("Hari tertentu")
 }
 
-data class DayOfWeek(
-    val id: Int,
-    val shortName: String,
-    val fullName: String,
-    val isSelected: Boolean = false
+data class SunnahHabitPreset(
+    val id: String,
+    val name: String,
+    val description: String
 )
+
+data class WeekDay(val id: Int, val shortName: String, val fullName: String)
+
+val WEEK_DAYS = listOf(
+    WeekDay(1, "Sen", "Senin"),
+    WeekDay(2, "Sel", "Selasa"),
+    WeekDay(3, "Rab", "Rabu"),
+    WeekDay(4, "Kam", "Kamis"),
+    WeekDay(5, "Jum", "Jumat"),
+    WeekDay(6, "Sab", "Sabtu"),
+    WeekDay(7, "Min", "Minggu")
+)
+
+val RAKAAT_OPTIONS = listOf(2, 4, 6, 8, 10, 12)
+
+// Main presets (shown as cards)
+private val SHOLAT_PRESETS = listOf(
+    SunnahHabitPreset("dhuha", "Dhuha", "Sholat sunnah pagi (06:00\u201311:00)"),
+    SunnahHabitPreset("tahajud", "Tahajud", "Sholat malam setelah tidur"),
+    SunnahHabitPreset("witir", "Witir", "Sholat penutup malam"),
+    SunnahHabitPreset("rawatib", "Rawatib", "Sebelum & sesudah sholat fardhu"),
+    SunnahHabitPreset(LAINNYA_ID, "Lainnya", "Pilih atau tulis sendiri")
+)
+
+private val PUASA_PRESETS = listOf(
+    SunnahHabitPreset("senin_kamis", "Senin Kamis", "Puasa sunnah rutin mingguan"),
+    SunnahHabitPreset("ayyamul_bidh", "Ayyamul Bidh", "Puasa tanggal 13\u201315 Hijriah"),
+    SunnahHabitPreset("puasa_daud", "Puasa Daud", "Puasa selang-seling sehari"),
+    SunnahHabitPreset("puasa_syawal", "Puasa Syawal", "6 hari puasa di bulan Syawal"),
+    SunnahHabitPreset(LAINNYA_ID, "Lainnya", "Pilih atau tulis sendiri")
+)
+
+// Extra presets shown when "Lainnya" is selected
+private val SHOLAT_EXTRA = listOf(
+    SunnahHabitPreset("taubat", "Taubat", "Sholat sunnah taubat"),
+    SunnahHabitPreset("istikharah", "Istikharah", "Sholat meminta petunjuk"),
+    SunnahHabitPreset("qadha", "Qadha", "Sholat pengganti yang terlewat")
+)
+
+private val PUASA_EXTRA = listOf(
+    SunnahHabitPreset("pengganti_ramadan", "Pengganti Ramadan", "Puasa pengganti Ramadan"),
+    SunnahHabitPreset("puasa_nazar", "Puasa Nazar", "Puasa karena nazar")
+)
+
+const val LAINNYA_ID = "lainnya"
+private const val CUSTOM_ID = "custom"
+
+fun getPresetsFor(category: SunnahCategoryType): List<SunnahHabitPreset> {
+    return when (category) {
+        SunnahCategoryType.SHOLAT -> SHOLAT_PRESETS
+        SunnahCategoryType.PUASA -> PUASA_PRESETS
+    }
+}
+
+fun getExtraPresetsFor(category: SunnahCategoryType): List<SunnahHabitPreset> {
+    return when (category) {
+        SunnahCategoryType.SHOLAT -> SHOLAT_EXTRA
+        SunnahCategoryType.PUASA -> PUASA_EXTRA
+    }
+}
 
 data class AddHabitUiState(
-    val name: String = "",
-    val description: String = "",
-    val selectedCategory: HabitCategory = HabitCategory.SHOLAT_FARDHU,
-    val selectedFrequency: HabitFrequency = HabitFrequency.DAILY,
-    val targetCount: Int = 1,
+    val selectedCategory: SunnahCategoryType = SunnahCategoryType.SHOLAT,
+    val selectedHabitId: String = SHOLAT_PRESETS.first().id,
+    val isCustomHabit: Boolean = false,
+    val customHabitName: String = "",
+    val selectedExtraId: String? = null,
+    val selectedRakaat: Int? = null,
+    val frequencyType: FrequencyType = FrequencyType.EVERY_DAY,
+    val selectedDays: Set<Int> = emptySet(),
+    val isReminderEnabled: Boolean = false,
     val reminderHour: Int = 5,
     val reminderMinute: Int = 0,
-    val isReminderEnabled: Boolean = true,
-    val selectedDays: List<DayOfWeek> = getDefaultDays(),
-    val isLoading: Boolean = false,
-    val nameError: String? = null,
     val saveSuccess: Boolean = false,
-    val isCategoryExpanded: Boolean = false,
-    val isFrequencyExpanded: Boolean = false,
     val showTimePicker: Boolean = false
-)
+) {
+    val availableHabits: List<SunnahHabitPreset>
+        get() = getPresetsFor(selectedCategory)
 
-fun getDefaultDays(): List<DayOfWeek> = listOf(
-    DayOfWeek(1, "Sen", "Senin", true),
-    DayOfWeek(2, "Sel", "Selasa", true),
-    DayOfWeek(3, "Rab", "Rabu", true),
-    DayOfWeek(4, "Kam", "Kamis", true),
-    DayOfWeek(5, "Jum", "Jumat", true),
-    DayOfWeek(6, "Sab", "Sabtu", true),
-    DayOfWeek(7, "Min", "Minggu", true)
-)
+    val extraHabits: List<SunnahHabitPreset>
+        get() = getExtraPresetsFor(selectedCategory)
+
+    val isLainnya: Boolean
+        get() = selectedHabitId == LAINNYA_ID
+
+    val selectedHabitName: String
+        get() = when {
+            isCustomHabit -> customHabitName
+            selectedExtraId != null -> extraHabits.firstOrNull { it.id == selectedExtraId }?.name.orEmpty()
+            else -> availableHabits.firstOrNull { it.id == selectedHabitId }?.name
+                ?: availableHabits.first().name
+        }
+
+    val showRakaat: Boolean
+        get() = selectedCategory == SunnahCategoryType.SHOLAT
+}
 
 @HiltViewModel
 class AddHabitViewModel @Inject constructor(
-    private val habitDao: HabitDao
+    @ApplicationContext private val context: Context,
+    private val sunnahHabitSharedViewModel: SunnahHabitSharedViewModel
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddHabitUiState())
     val uiState: StateFlow<AddHabitUiState> = _uiState.asStateFlow()
 
-    fun onNameChange(name: String) {
-        _uiState.update { it.copy(name = name, nameError = null) }
-    }
-
-    fun onDescriptionChange(description: String) {
-        _uiState.update { it.copy(description = description) }
-    }
-
-    fun onCategorySelected(category: HabitCategory) {
-        _uiState.update { it.copy(selectedCategory = category, isCategoryExpanded = false) }
-    }
-
-    fun toggleCategoryDropdown() {
-        _uiState.update { it.copy(isCategoryExpanded = !it.isCategoryExpanded) }
-    }
-
-    fun dismissCategoryDropdown() {
-        _uiState.update { it.copy(isCategoryExpanded = false) }
-    }
-
-    fun onFrequencySelected(frequency: HabitFrequency) {
-        _uiState.update { it.copy(selectedFrequency = frequency, isFrequencyExpanded = false) }
-    }
-
-    fun toggleFrequencyDropdown() {
-        _uiState.update { it.copy(isFrequencyExpanded = !it.isFrequencyExpanded) }
-    }
-
-    fun dismissFrequencyDropdown() {
-        _uiState.update { it.copy(isFrequencyExpanded = false) }
-    }
-
-    fun incrementTargetCount() {
-        val currentCount = _uiState.value.targetCount
-        if (currentCount < 99) {
-            _uiState.update { it.copy(targetCount = currentCount + 1) }
+    fun selectCategory(category: SunnahCategoryType) {
+        _uiState.update { current ->
+            val defaultHabit = getPresetsFor(category).first().id
+            current.copy(
+                selectedCategory = category,
+                selectedHabitId = defaultHabit,
+                isCustomHabit = false,
+                customHabitName = "",
+                selectedExtraId = null,
+                selectedRakaat = if (category == SunnahCategoryType.PUASA) null else current.selectedRakaat,
+                frequencyType = FrequencyType.EVERY_DAY,
+                selectedDays = emptySet()
+            )
         }
     }
 
-    fun decrementTargetCount() {
-        val currentCount = _uiState.value.targetCount
-        if (currentCount > 1) {
-            _uiState.update { it.copy(targetCount = currentCount - 1) }
+    fun selectHabit(habitId: String) {
+        _uiState.update {
+            it.copy(
+                selectedHabitId = habitId,
+                isCustomHabit = false,
+                customHabitName = "",
+                selectedExtraId = null
+            )
+        }
+    }
+
+    fun selectExtraHabit(extraId: String) {
+        _uiState.update {
+            it.copy(
+                selectedExtraId = extraId,
+                isCustomHabit = false,
+                customHabitName = ""
+            )
+        }
+    }
+
+    fun enableCustomInput() {
+        _uiState.update {
+            it.copy(
+                isCustomHabit = true,
+                selectedExtraId = null
+            )
+        }
+    }
+
+    fun updateCustomHabitName(name: String) {
+        _uiState.update { it.copy(customHabitName = name) }
+    }
+
+    fun selectRakaat(rakaat: Int) {
+        _uiState.update { it.copy(selectedRakaat = rakaat) }
+    }
+
+    fun selectFrequency(type: FrequencyType) {
+        _uiState.update {
+            it.copy(
+                frequencyType = type,
+                selectedDays = if (type == FrequencyType.EVERY_DAY) emptySet() else it.selectedDays
+            )
+        }
+    }
+
+    fun toggleDay(dayId: Int) {
+        _uiState.update { current ->
+            val updated = current.selectedDays.toMutableSet()
+            if (updated.contains(dayId)) {
+                if (updated.size > 1) updated.remove(dayId)
+            } else {
+                updated.add(dayId)
+            }
+            current.copy(selectedDays = updated)
         }
     }
 
     fun toggleReminder() {
         _uiState.update { it.copy(isReminderEnabled = !it.isReminderEnabled) }
-    }
-
-    fun onReminderTimeChange(hour: Int, minute: Int) {
-        _uiState.update { it.copy(reminderHour = hour, reminderMinute = minute, showTimePicker = false) }
     }
 
     fun showTimePicker() {
@@ -136,70 +221,59 @@ class AddHabitViewModel @Inject constructor(
         _uiState.update { it.copy(showTimePicker = false) }
     }
 
-    fun toggleDaySelection(dayId: Int) {
-        _uiState.update { currentState ->
-            val updatedDays = currentState.selectedDays.map { day ->
-                if (day.id == dayId) day.copy(isSelected = !day.isSelected) else day
-            }
-            currentState.copy(selectedDays = updatedDays)
-        }
+    fun onReminderTimeChange(hour: Int, minute: Int) {
+        _uiState.update { it.copy(reminderHour = hour, reminderMinute = minute, showTimePicker = false) }
     }
 
     fun saveHabit() {
-        val currentState = _uiState.value
-        val nameError = validateName(currentState.name)
-        if (nameError != null) {
-            _uiState.update { it.copy(nameError = nameError) }
-            return
-        }
+        val state = _uiState.value
+        val habitName = state.selectedHabitName
+        if (habitName.isBlank()) return
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+        Log.d("AddHabitVM", "Saving habit: name=$habitName, category=${state.selectedCategory}, reminder=${state.isReminderEnabled}")
 
-            val newHabit = Habit(
-                name = currentState.name,
-                description = currentState.description,
-                category = currentState.selectedCategory.displayName,
-                icon = currentState.selectedCategory.icon
+        val frequencyLabel = buildFrequencyLabel(state)
+        val reminderTime = if (state.isReminderEnabled) getFormattedReminderTime(state) else null
+
+        val habitId = sunnahHabitSharedViewModel.addHabit(
+            name = habitName,
+            category = state.selectedCategory,
+            frequencyLabel = frequencyLabel,
+            reminderEnabled = state.isReminderEnabled,
+            reminderTime = reminderTime
+        )
+
+        // Schedule notification if reminder is enabled
+        if (state.isReminderEnabled) {
+            Log.d("AddHabitVM", "Scheduling reminder: habitId=$habitId at ${state.reminderHour}:${state.reminderMinute}")
+            NotificationScheduler.scheduleHabitReminder(
+                context = context,
+                habitId = habitId,
+                habitName = habitName,
+                hour = state.reminderHour,
+                minute = state.reminderMinute
             )
-
-            habitDao.insertHabit(newHabit)
-
-            _uiState.update { it.copy(isLoading = false, saveSuccess = true) }
         }
+
+        _uiState.update { it.copy(saveSuccess = true) }
     }
 
     fun resetState() {
         _uiState.value = AddHabitUiState()
     }
 
-    private fun validateName(name: String): String? {
-        return when {
-            name.isBlank() -> "Nama kebiasaan tidak boleh kosong"
-            name.length < 3 -> "Nama minimal 3 karakter"
-            name.length > 50 -> "Nama maksimal 50 karakter"
-            else -> null
-        }
+    fun getFormattedReminderTime(state: AddHabitUiState = _uiState.value): String {
+        return String.format("%02d:%02d", state.reminderHour, state.reminderMinute)
     }
 
-    fun getFormattedReminderTime(): String {
-        val hour = _uiState.value.reminderHour
-        val minute = _uiState.value.reminderMinute
-        return String.format("%02d:%02d", hour, minute)
-    }
-
-    fun getFrequencyDescription(): String {
-        val state = _uiState.value
-        return when (state.selectedFrequency) {
-            HabitFrequency.DAILY -> "Setiap hari"
-            HabitFrequency.WEEKLY -> {
-                val selectedDays = state.selectedDays.filter { it.isSelected }
-                if (selectedDays.size == 7) "Setiap hari" else selectedDays.joinToString(", ") { it.shortName }
-            }
-            HabitFrequency.MONTHLY -> "Setiap bulan"
-            HabitFrequency.CUSTOM -> {
-                val selectedDays = state.selectedDays.filter { it.isSelected }
-                selectedDays.joinToString(", ") { it.shortName }
+    private fun buildFrequencyLabel(state: AddHabitUiState): String {
+        return when (state.frequencyType) {
+            FrequencyType.EVERY_DAY -> "Setiap hari"
+            FrequencyType.SPECIFIC_DAYS -> {
+                val days = state.selectedDays.sorted().mapNotNull { id ->
+                    WEEK_DAYS.firstOrNull { it.id == id }?.shortName
+                }.joinToString(" \u2022 ")
+                if (days.isNotEmpty()) "Hari: $days" else "Setiap hari"
             }
         }
     }

@@ -1,127 +1,194 @@
 package com.islami.Aha.ui.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.islami.Aha.ui.theme.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.islami.Aha.ui.theme.Emerald
+import com.islami.Aha.ui.theme.EmeraldDark
+import com.islami.Aha.ui.theme.ErrorRed
+import com.islami.Aha.ui.theme.Gray500
+import com.islami.Aha.ui.theme.HabitIslamiTheme
 
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
     onNavigateToSettings: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     onLogout: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearSnackbar()
+        }
+    }
 
     ProfileScreenContent(
         uiState = uiState,
+        snackbarHostState = snackbarHostState,
         onNavigateToSettings = onNavigateToSettings,
+        onNavigateToLogin = onNavigateToLogin,
         onShowLogoutConfirmation = viewModel::showLogoutConfirmation,
         onHideLogoutConfirmation = viewModel::hideLogoutConfirmation,
         onConfirmLogout = {
             if (viewModel.logout()) {
                 onLogout()
             }
-        }
+        },
+        onAvatarEditClick = onNavigateToSettings
     )
 }
 
 @Composable
 fun ProfileScreenContent(
     uiState: ProfileUiState,
+    snackbarHostState: SnackbarHostState,
     onNavigateToSettings: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     onShowLogoutConfirmation: () -> Unit,
     onHideLogoutConfirmation: () -> Unit,
-    onConfirmLogout: () -> Unit
+    onConfirmLogout: () -> Unit,
+    onAvatarEditClick: () -> Unit
 ) {
-    if (uiState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Emerald)
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            // Header
-            item {
-                ProfileHeader(
-                    userInfo = uiState.userInfo,
-                    totalHabits = uiState.totalHabits,
-                    totalCompleted = uiState.totalCompleted,
-                    currentStreak = uiState.currentStreak,
-                    onSettingsClick = onNavigateToSettings
-                )
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(snackbarData = data)
             }
-
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-
-            // Achievements Section
-            item {
-                Text(
-                    text = "\uD83C\uDFC6 Pencapaian Saya",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { _: PaddingValues ->
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Emerald)
             }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)
+            ) {
+                if (uiState.isSaving) {
+                    item {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Emerald,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    }
+                }
 
-            // Achievement grid - using fixed height grid inside LazyColumn
-            item {
-                AchievementsGrid(achievements = uiState.achievements)
-            }
-
-            item { Spacer(modifier = Modifier.height(20.dp)) }
-
-            // Weekly Summary
-            item {
-                WeeklySummaryCard(summary = uiState.weeklySummary)
-            }
-
-            // Logout button
-            if (uiState.userInfo.isLoggedIn) {
                 item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    OutlinedButton(
-                        onClick = onShowLogoutConfirmation,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed),
-                        border = BorderStroke(1.dp, ErrorRed)
-                    ) {
-                        Icon(Icons.Outlined.Logout, null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Keluar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    ProfileHeader(
+                        userInfo = uiState.userInfo,
+                        totalHabits = uiState.totalHabits,
+                        totalCompleted = uiState.totalCompleted,
+                        currentStreak = uiState.currentStreak,
+                        onSettingsClick = onNavigateToSettings,
+                        onLoginClick = onNavigateToLogin,
+                        onAvatarEditClick = onAvatarEditClick
+                    )
+                }
+
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                item {
+                    Text(
+                        text = "\uD83C\uDFC6 Pencapaian Saya",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                item {
+                    AchievementsGrid(achievements = uiState.achievements)
+                }
+
+                item { Spacer(modifier = Modifier.height(20.dp)) }
+
+                item {
+                    WeeklySummaryCard(summary = uiState.weeklySummary)
+                }
+
+                if (uiState.userInfo.isLoggedIn) {
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        OutlinedButton(
+                            onClick = onShowLogoutConfirmation,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed),
+                            border = BorderStroke(1.dp, ErrorRed)
+                        ) {
+                            Icon(Icons.AutoMirrored.Outlined.Logout, null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Keluar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
@@ -145,76 +212,151 @@ fun ProfileHeader(
     totalHabits: Int,
     totalCompleted: Int,
     currentStreak: Int,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onLoginClick: () -> Unit,
+    onAvatarEditClick: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        // Gradient background
+    val avatarSize = 88.dp
+    val displayName = if (userInfo.isLoggedIn) userInfo.name else "Tamu"
+
+    Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = 320.dp)
                 .background(
                     brush = Brush.verticalGradient(colors = listOf(EmeraldDark, Emerald)),
                     shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
                 )
-                .padding(top = 40.dp, bottom = 60.dp)
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // Top settings icon
-            IconButton(
-                onClick = onSettingsClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-            ) {
-                Icon(Icons.Outlined.Settings, "Pengaturan", tint = Color.White)
-            }
-
-            // Avatar, Name, Email
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, top = 48.dp, end = 24.dp)
+                    .height(52.dp)
+                    .align(Alignment.TopCenter)
+            ) {
+                if (!userInfo.isLoggedIn) {
+                    OutlinedButton(
+                        onClick = onLoginClick,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.08f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary),
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Text(
+                            text = "Login",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Profil",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Icon(Icons.Outlined.Settings, "Pengaturan", tint = MaterialTheme.colorScheme.onPrimary)
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .border(3.dp, Color.White, CircleShape)
-                        .clip(CircleShape)
-                        .background(Color.White),
+                        .size(avatarSize),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = userInfo.avatarInitial,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Emerald
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onPrimary)
+                            .border(3.dp, MaterialTheme.colorScheme.onPrimary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (userInfo.isLoggedIn && userInfo.avatarUri != null) {
+                            coil.compose.AsyncImage(
+                                model = userInfo.avatarUri,
+                                contentDescription = "Foto Profil",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = if (userInfo.isLoggedIn) userInfo.avatarInitial else "Tamu",
+                                fontSize = if (userInfo.isLoggedIn) 28.sp else 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Emerald
+                            )
+                        }
+                    }
+
+                    if (userInfo.isLoggedIn) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.dp, MaterialTheme.colorScheme.onPrimary, CircleShape)
+                                .clickable { onAvatarEditClick() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Ubah Foto Profil",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
                 }
+
                 Spacer(modifier = Modifier.height(14.dp))
+
                 Text(
-                    text = userInfo.name,
+                    text = displayName,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
-                if (userInfo.email.isNotEmpty()) {
+
+                if (userInfo.isLoggedIn && userInfo.email.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = userInfo.email,
                         fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                     )
                 }
             }
         }
 
-        // Floating stats card
+        Spacer(modifier = Modifier.height(16.dp))
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .align(Alignment.BottomCenter)
-                .offset(y = (-30).dp),
+                .padding(horizontal = 24.dp),
             shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -257,7 +399,6 @@ fun AchievementsGrid(achievements: List<Achievement>) {
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Manual 2-column grid to avoid nested scrollable
         achievements.chunked(2).forEach { rowItems ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -269,7 +410,6 @@ fun AchievementsGrid(achievements: List<Achievement>) {
                         modifier = Modifier.weight(1f)
                     )
                 }
-                // Fill remaining space if odd number
                 if (rowItems.size == 1) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -360,7 +500,6 @@ fun WeeklySummaryCard(summary: WeeklySummary) {
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Ibadah Selesai row with progress bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -383,7 +522,7 @@ fun WeeklySummaryCard(summary: WeeklySummary) {
                     if (fraction > 0f) {
                         Box(
                             modifier = Modifier
-                                .fillMaxHeight()
+                                .fillMaxSize()
                                 .fillMaxWidth(fraction)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(Emerald)
@@ -401,7 +540,6 @@ fun WeeklySummaryCard(summary: WeeklySummary) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Hari Aktif
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -421,7 +559,6 @@ fun WeeklySummaryCard(summary: WeeklySummary) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Kategori Terbaik
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -449,7 +586,13 @@ fun ProfileScreenPreview() {
         ProfileScreenContent(
             uiState = ProfileUiState(
                 isLoading = false,
-                userInfo = UserInfo("Ahmad Fauzi", "ahmad@fauzi.com", "AF", true),
+                userInfo = UserInfo(
+                    name = "Ahmad Fauzi",
+                    email = "ahmad@fauzi.com",
+                    avatarInitial = "AF",
+                    avatarUri = null,
+                    isLoggedIn = true
+                ),
                 totalHabits = 18,
                 totalCompleted = 3,
                 currentStreak = 0,
@@ -468,10 +611,13 @@ fun ProfileScreenPreview() {
                     bestCategory = "Sholat Fardhu"
                 )
             ),
+            snackbarHostState = remember { SnackbarHostState() },
             onNavigateToSettings = {},
+            onNavigateToLogin = {},
             onShowLogoutConfirmation = {},
             onHideLogoutConfirmation = {},
-            onConfirmLogout = {}
+            onConfirmLogout = {},
+            onAvatarEditClick = {}
         )
     }
 }

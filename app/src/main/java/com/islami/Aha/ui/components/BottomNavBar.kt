@@ -7,7 +7,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,29 +17,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.islami.Aha.R
 import com.islami.Aha.ui.theme.*
 
 data class BottomNavItem(
     val route: String,
     val title: String,
-    val icon: ImageVector,
+    val iconRes: Int,
     val contentDescription: String = title
 )
 
 object BottomNavItems {
     val items = listOf(
-        BottomNavItem("home", "Beranda", Icons.Outlined.Home),
-        BottomNavItem("statistic", "Statistik", Icons.Outlined.BarChart),
-        BottomNavItem("add_habit", "Tambah", Icons.Rounded.Add),
-        BottomNavItem("notification", "Notifikasi", Icons.Outlined.Notifications),
-        BottomNavItem("profile", "Profil", Icons.Outlined.Person)
+        BottomNavItem("home", "Beranda", R.drawable.ic_nav_home),
+        BottomNavItem("statistic", "Statistik", R.drawable.ic_nav_statistic),
+        BottomNavItem("add_habit", "Tambah", R.drawable.ic_nav_add),
+        BottomNavItem("notification", "Notifikasi", R.drawable.ic_nav_notification),
+        BottomNavItem("profile", "Profil", R.drawable.ic_nav_profile)
     )
 }
 
@@ -55,7 +55,13 @@ fun AhaBottomNavBar(
         modifier = modifier.fillMaxWidth()
     ) {
         // ── Nav bar background with top divider ──
-        Column(modifier = Modifier.align(Alignment.BottomCenter)) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(
+                    WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
+                )
+        ) {
             // Top separator line
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -66,8 +72,8 @@ fun AhaBottomNavBar(
                     .height(64.dp)
                     .shadow(
                         elevation = 12.dp,
-                        spotColor = Color.Black.copy(alpha = 0.1f),
-                        ambientColor = Color.Black.copy(alpha = 0.05f)
+                        spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.1f),
+                        ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.05f)
                     )
                     .background(MaterialTheme.colorScheme.surface)
             ) {
@@ -124,7 +130,7 @@ fun AhaBottomNavBar(
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = "Tambah",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -143,11 +149,11 @@ private fun NavBarItem(
     modifier: Modifier = Modifier
 ) {
     val iconColor by animateColorAsState(
-        targetValue = if (isSelected) Emerald else Color(0xFF9CA3AF),
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "navIcon"
     )
     val labelColor by animateColorAsState(
-        targetValue = if (isSelected) Emerald else Color(0xFF9CA3AF),
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "navLabel"
     )
 
@@ -162,7 +168,7 @@ private fun NavBarItem(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = item.icon,
+            painter = painterResource(id = item.iconRes),
             contentDescription = item.contentDescription,
             tint = iconColor,
             modifier = Modifier.size(24.dp)

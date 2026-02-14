@@ -1,6 +1,7 @@
 package com.islami.Aha.ui.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +13,6 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,17 +32,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.islami.Aha.R
 import com.islami.Aha.ui.theme.*
 
 @Composable
 fun LoginScreen(
-    viewModel: AuthViewModel = viewModel(),
+    viewModel: AuthViewModel = hiltViewModel(),
     onNavigateToRegister: () -> Unit = {},
-    onNavigateToHome: () -> Unit = {},
-    onSkipLogin: () -> Unit = {}
+    onNavigateToHome: () -> Unit = {}
 ) {
-    val uiState by viewModel.loginState.collectAsState()
+    val uiState by viewModel.loginState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(uiState.loginSuccess) {
@@ -60,7 +66,8 @@ fun LoginScreen(
             focusManager.clearFocus()
             viewModel.login()
         },
-        onSkipClick = onSkipLogin,
+        onGoogleLoginClick = {},
+        onFacebookLoginClick = {},
         onRegisterClick = onNavigateToRegister
     )
 }
@@ -72,7 +79,8 @@ fun LoginScreenContent(
     onPasswordChange: (String) -> Unit,
     onTogglePasswordVisibility: () -> Unit,
     onLoginClick: () -> Unit,
-    onSkipClick: () -> Unit,
+    onGoogleLoginClick: () -> Unit,
+    onFacebookLoginClick: () -> Unit,
     onRegisterClick: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
@@ -94,15 +102,14 @@ fun LoginScreenContent(
         Surface(
             modifier = Modifier.size(72.dp),
             shape = RoundedCornerShape(18.dp),
-            color = Emerald,
+            color = Color.White,
             shadowElevation = 4.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Outlined.Home,
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
                     contentDescription = "Aha Logo",
-                    tint = SurfaceWhite,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 )
             }
         }
@@ -113,7 +120,7 @@ fun LoginScreenContent(
             text = "Selamat Datang!",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = Gray900
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -133,7 +140,7 @@ fun LoginScreenContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
@@ -163,7 +170,7 @@ fun LoginScreenContent(
                     value = uiState.password,
                     onValueChange = onPasswordChange,
                     label = "Password",
-                    placeholder = "Masukkan password Anda",
+                    placeholder = "Masukkan password",
                     leadingIcon = Icons.Default.Lock,
                     trailingIcon = if (uiState.isPasswordVisible)
                         Icons.Default.Visibility else Icons.Default.VisibilityOff,
@@ -186,7 +193,27 @@ fun LoginScreenContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Error message from Firebase
+        if (uiState.errorMessage != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.1f))
+            ) {
+                Text(
+                    text = uiState.errorMessage!!,
+                    fontSize = 13.sp,
+                    color = ErrorRed,
+                    modifier = Modifier.padding(12.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // ================================================================
         // BUTTONS
@@ -217,7 +244,7 @@ fun LoginScreenContent(
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = SurfaceWhite,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -225,7 +252,7 @@ fun LoginScreenContent(
                         text = "Masuk",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -245,24 +272,19 @@ fun LoginScreenContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Skip button - outlined style
-        OutlinedButton(
-            onClick = onSkipClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Emerald),
-            border = ButtonDefaults.outlinedButtonBorder.copy(
-                brush = androidx.compose.ui.graphics.SolidColor(Emerald)
-            )
-        ) {
-            Text(
-                text = "Lewati & Gunakan Lokal",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        SocialLoginButton(
+            text = "Login Google",
+            iconText = "G",
+            onClick = onGoogleLoginClick
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        SocialLoginButton(
+            text = "Login Facebook",
+            iconText = "f",
+            onClick = onFacebookLoginClick
+        )
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -288,6 +310,45 @@ fun LoginScreenContent(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun SocialLoginButton(
+    text: String,
+    iconText: String,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = iconText,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -330,13 +391,14 @@ fun AuthTextField(
             },
             trailingIcon = if (trailingIcon != null) {
                 {
-                    IconButton(onClick = { onTrailingIconClick?.invoke() }) {
-                        Icon(
-                            imageVector = trailingIcon,
-                            contentDescription = "Toggle visibility",
-                            tint = Gray400
-                        )
-                    }
+                    Icon(
+                        imageVector = trailingIcon,
+                        contentDescription = "Toggle visibility",
+                        tint = Gray400,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable { onTrailingIconClick?.invoke() }
+                    )
                 }
             } else null,
             visualTransformation = visualTransformation,
@@ -349,7 +411,7 @@ fun AuthTextField(
                 focusedBorderColor = Emerald,
                 unfocusedBorderColor = Gray200,
                 errorBorderColor = ErrorRed,
-                focusedContainerColor = SurfaceWhite,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = Gray50,
                 errorContainerColor = ErrorRed.copy(alpha = 0.05f)
             )
@@ -380,7 +442,8 @@ fun LoginScreenPreview() {
             onPasswordChange = {},
             onTogglePasswordVisibility = {},
             onLoginClick = {},
-            onSkipClick = {},
+            onGoogleLoginClick = {},
+            onFacebookLoginClick = {},
             onRegisterClick = {}
         )
     }
@@ -401,7 +464,8 @@ fun LoginScreenErrorPreview() {
             onPasswordChange = {},
             onTogglePasswordVisibility = {},
             onLoginClick = {},
-            onSkipClick = {},
+            onGoogleLoginClick = {},
+            onFacebookLoginClick = {},
             onRegisterClick = {}
         )
     }
@@ -421,7 +485,8 @@ fun LoginScreenLoadingPreview() {
             onPasswordChange = {},
             onTogglePasswordVisibility = {},
             onLoginClick = {},
-            onSkipClick = {},
+            onGoogleLoginClick = {},
+            onFacebookLoginClick = {},
             onRegisterClick = {}
         )
     }

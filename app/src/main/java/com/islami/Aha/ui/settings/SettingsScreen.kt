@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.*
@@ -17,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
@@ -26,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.islami.Aha.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +37,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.snackbarMessage) {
@@ -99,36 +102,16 @@ fun SettingsScreenContent(
     onTermsClick: () -> Unit
 ) {
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0).only(WindowInsetsSides.Horizontal),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Pengaturan",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Gray900
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Kembali",
-                            tint = Gray900
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SurfaceWhite
-                )
-            )
+            SettingsHeader(onNavigateBack = onNavigateBack)
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
                     containerColor = Gray800,
-                    contentColor = SurfaceWhite,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(12.dp)
                 )
             }
@@ -138,8 +121,9 @@ fun SettingsScreenContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+                .padding(paddingValues)
+                .navigationBarsPadding(),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             // =============================================================
@@ -154,23 +138,11 @@ fun SettingsScreenContent(
                 SettingsClickableItem(
                     icon = Icons.Outlined.Language,
                     iconBackground = InfoBlue.copy(alpha = 0.1f),
+
                     iconTint = InfoBlue,
                     title = "Bahasa",
                     subtitle = uiState.selectedLanguage.displayName,
                     onClick = onShowLanguageDialog
-                )
-            }
-
-            // Lokasi
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingsClickableItem(
-                    icon = Icons.Outlined.LocationOn,
-                    iconBackground = ErrorRed.copy(alpha = 0.1f),
-                    iconTint = ErrorRed,
-                    title = "Lokasi",
-                    subtitle = uiState.location,
-                    onClick = onShowLocationDialog
                 )
             }
 
@@ -226,7 +198,7 @@ fun SettingsScreenContent(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsClickableItem(
-                    icon = Icons.Outlined.VolumeUp,
+                    icon = Icons.AutoMirrored.Filled.VolumeUp,
                     iconBackground = CategoryDzikirStart.copy(alpha = 0.1f),
                     iconTint = CategoryDzikirStart,
                     title = "Suara Notifikasi",
@@ -388,6 +360,51 @@ fun SettingsScreenContent(
     }
 }
 
+@Composable
+private fun SettingsHeader(onNavigateBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                brush = Brush.verticalGradient(colors = listOf(EmeraldDark, Emerald)),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .heightIn(min = 90.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 12.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+
+                Text(
+                    text = "Pengaturan",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
 // ============================================================================
 // REUSABLE SETTINGS COMPONENTS
 // ============================================================================
@@ -418,7 +435,7 @@ fun SettingsToggleItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -449,7 +466,7 @@ fun SettingsToggleItem(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Gray900
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
@@ -462,9 +479,9 @@ fun SettingsToggleItem(
                 checked = isChecked,
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = SurfaceWhite,
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                     checkedTrackColor = Emerald,
-                    uncheckedThumbColor = SurfaceWhite,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onPrimary,
                     uncheckedTrackColor = Gray300
                 )
             )
@@ -479,7 +496,7 @@ fun SettingsClickableItem(
     iconTint: Color = Emerald,
     title: String,
     subtitle: String,
-    titleColor: Color = Gray900,
+    titleColor: Color = Color.Unspecified,
     onClick: () -> Unit
 ) {
     Card(
@@ -488,7 +505,7 @@ fun SettingsClickableItem(
             .padding(horizontal = 16.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -519,7 +536,7 @@ fun SettingsClickableItem(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = titleColor
+                    color = if (titleColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else titleColor
                 )
                 Text(
                     text = subtitle,
@@ -551,7 +568,7 @@ fun SettingsInfoItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -581,7 +598,7 @@ fun SettingsInfoItem(
                 text = title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Gray900,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
 
@@ -610,7 +627,7 @@ fun LanguageSelectionDialog(
             Text(
                 text = "Pilih Bahasa",
                 fontWeight = FontWeight.SemiBold,
-                color = Gray900
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -634,7 +651,7 @@ fun LanguageSelectionDialog(
                         Text(
                             text = language.displayName,
                             fontSize = 14.sp,
-                            color = Gray900
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -645,7 +662,7 @@ fun LanguageSelectionDialog(
                 Text(text = "Batal", color = Gray500)
             }
         },
-        containerColor = SurfaceWhite,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(20.dp)
     )
 }
@@ -665,7 +682,7 @@ fun LocationInputDialog(
             Text(
                 text = "Ubah Lokasi",
                 fontWeight = FontWeight.SemiBold,
-                color = Gray900
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -706,7 +723,7 @@ fun LocationInputDialog(
                 Text(text = "Batal", color = Gray500)
             }
         },
-        containerColor = SurfaceWhite,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(20.dp)
     )
 }
@@ -723,7 +740,7 @@ fun TimeFormatSelectionDialog(
             Text(
                 text = "Format Waktu",
                 fontWeight = FontWeight.SemiBold,
-                color = Gray900
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -749,7 +766,7 @@ fun TimeFormatSelectionDialog(
                                 text = format.displayName,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Gray900
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = format.description,
@@ -766,7 +783,7 @@ fun TimeFormatSelectionDialog(
                 Text(text = "Batal", color = Gray500)
             }
         },
-        containerColor = SurfaceWhite,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(20.dp)
     )
 }
@@ -806,7 +823,7 @@ fun ResetConfirmationDialog(
                 Text(text = "Batal", color = Gray500)
             }
         },
-        containerColor = SurfaceWhite,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(20.dp)
     )
 }

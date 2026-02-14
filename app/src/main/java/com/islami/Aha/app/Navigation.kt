@@ -40,11 +40,6 @@ fun AhaNavHost(
     ) {
         composable(Screen.Splash.route) {
             SplashScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
-                },
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
@@ -57,11 +52,6 @@ fun AhaNavHost(
             LoginScreen(
                 onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                 onNavigateToHome = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
-                },
-                onSkipLogin = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
@@ -104,11 +94,8 @@ fun AhaNavHost(
         composable(Screen.Profile.route) {
             ProfileScreen(
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onLogout = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                    }
-                }
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                onLogout = {}
             )
         }
 

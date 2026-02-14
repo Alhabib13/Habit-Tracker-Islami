@@ -3,14 +3,23 @@ package com.islami.Aha.ui.statistic
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,12 +30,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.islami.Aha.R
 import com.islami.Aha.ui.theme.*
 
 // Category gradient pairs
@@ -39,7 +52,7 @@ private val categoryGradients = listOf(
 
 @Composable
 fun StatisticScreen(viewModel: StatisticViewModel = hiltViewModel()) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     StatisticScreenContent(uiState = uiState)
 }
 
@@ -115,18 +128,63 @@ fun StatisticScreenContent(uiState: StatisticUiState) {
 
 @Composable
 fun StatisticHeader(currentDate: String) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-        Text(
-            text = "Statistik",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        if (currentDate.isNotEmpty()) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                brush = Brush.verticalGradient(colors = listOf(EmeraldDark, Emerald)),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 18.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Statistik",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "Tanggal Aktif",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = if (currentDate.isNotEmpty()) currentDate else "Tanggal aktif tidak tersedia",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = currentDate,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Ringkasan progres ibadah Anda",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
+                modifier = Modifier.padding(top = 6.dp)
             )
         }
     }
@@ -159,19 +217,19 @@ fun ProgressCard(completed: Int, total: Int, percentage: Int) {
                     Text(
                         text = "Progress Hari Ini",
                         fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "$completed dari $total",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
                         text = "ibadah selesai",
                         fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                     )
                 }
 
@@ -181,6 +239,7 @@ fun ProgressCard(completed: Int, total: Int, percentage: Int) {
                     modifier = Modifier.size(90.dp)
                 ) {
                     val progress = percentage / 100f
+                    val onPrimary = MaterialTheme.colorScheme.onPrimary
                     androidx.compose.foundation.Canvas(modifier = Modifier.size(80.dp)) {
                         val strokeWidth = 8.dp.toPx()
                         val diameter = size.minDimension
@@ -193,7 +252,7 @@ fun ProgressCard(completed: Int, total: Int, percentage: Int) {
 
                         // Track
                         drawArc(
-                            color = Color.White.copy(alpha = 0.3f),
+                            color = onPrimary.copy(alpha = 0.3f),
                             startAngle = -90f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -203,7 +262,7 @@ fun ProgressCard(completed: Int, total: Int, percentage: Int) {
                         )
                         // Progress
                         drawArc(
-                            color = Color.White,
+                            color = onPrimary,
                             startAngle = -90f,
                             sweepAngle = 360f * progress,
                             useCenter = false,
@@ -216,7 +275,7 @@ fun ProgressCard(completed: Int, total: Int, percentage: Int) {
                         text = "$percentage%",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -234,19 +293,19 @@ fun SummaryCardsRow(totalCompleted: Int, longestStreak: Int, averagePerDay: Floa
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SummaryCard(
-            icon = "\u2705",
+            icon = Icons.Filled.CheckCircle,
             value = "$totalCompleted",
             label = "Total\nSelesai",
             backgroundColor = Emerald
         )
         SummaryCard(
-            icon = "\uD83D\uDD25",
+            icon = Icons.Filled.LocalFireDepartment,
             value = "$longestStreak",
             label = "Streak\nTerpjg",
             backgroundColor = Gold
         )
         SummaryCard(
-            icon = "\uD83D\uDCCA",
+            icon = Icons.Filled.BarChart,
             value = String.format("%.1f", averagePerDay),
             label = "Rata-\nrata/hr",
             backgroundColor = Color(0xFF17A2B8)
@@ -255,7 +314,7 @@ fun SummaryCardsRow(totalCompleted: Int, longestStreak: Int, averagePerDay: Floa
 }
 
 @Composable
-fun SummaryCard(icon: String, value: String, label: String, backgroundColor: Color) {
+fun SummaryCard(icon: ImageVector, value: String, label: String, backgroundColor: Color) {
     Card(
         modifier = Modifier.width(110.dp),
         shape = RoundedCornerShape(16.dp)
@@ -267,19 +326,24 @@ fun SummaryCard(icon: String, value: String, label: String, backgroundColor: Col
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = icon, fontSize = 24.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(24.dp)
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
                 fontSize = 11.sp,
-                color = Color.White.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                 textAlign = TextAlign.Center,
                 lineHeight = 14.sp
             )
@@ -325,7 +389,7 @@ fun HeatmapCell(day: DailyStatistic) {
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val textColor = when {
-        day.completedCount >= 4 -> Color.White
+        day.completedCount >= 4 -> MaterialTheme.colorScheme.onPrimary
         day.completedCount in 1..3 -> EmeraldDark
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -375,7 +439,18 @@ fun StreakCards(currentStreak: Int, longestStreak: Int) {
             colors = CardDefaults.cardColors(containerColor = GoldLight)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "\uD83D\uDD25 Streak", fontSize = 13.sp, color = Gray700)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalFireDepartment,
+                        contentDescription = null,
+                        tint = Gray700,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(text = "Streak", fontSize = 13.sp, color = Gray700)
+                }
                 Text(
                     text = "Saat Ini",
                     fontSize = 12.sp,
@@ -386,7 +461,7 @@ fun StreakCards(currentStreak: Int, longestStreak: Int) {
                     text = "$currentStreak hari",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Gray900
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -396,7 +471,18 @@ fun StreakCards(currentStreak: Int, longestStreak: Int) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "\uD83D\uDCC8 Streak", fontSize = 13.sp, color = Gray700)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                        contentDescription = null,
+                        tint = Gray700,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(text = "Streak", fontSize = 13.sp, color = Gray700)
+                }
                 Text(
                     text = "Terpanjang",
                     fontSize = 12.sp,
@@ -433,7 +519,7 @@ fun CategoryStatCard(category: CategoryStatistic, modifier: Modifier = Modifier)
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = category.icon, fontSize = 20.sp)
+                    CategoryStatIcon(iconKey = category.icon)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = category.name,
@@ -463,7 +549,7 @@ fun CategoryStatCard(category: CategoryStatistic, modifier: Modifier = Modifier)
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "\uD83D\uDD25 ${category.streak} hari",
+                    text = "${category.streak} hari",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -511,12 +597,23 @@ fun ComingSoonCard() {
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "\uD83D\uDE80  Statistik Dzikir & Tilawah",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.HourglassTop,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = "Statistik Dzikir & Tilawah",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text(
                 text = "akan tersedia segera!",
                 fontSize = 13.sp,
@@ -551,12 +648,30 @@ fun StatisticScreenPreview() {
                     DailyStatistic("Sab", 0, false)
                 ),
                 categoryStats = listOf(
-                    CategoryStatistic("Sholat Fardhu", "\uD83D\uDD4C", 2, 5, 40, 0, 0),
-                    CategoryStatistic("Sholat Sunnah", "\u2600\uFE0F", 1, 7, 14, 0, 1),
-                    CategoryStatistic("Puasa Wajib", "\uD83C\uDF7D\uFE0F", 0, 1, 0, 0, 2),
-                    CategoryStatistic("Puasa Sunnah", "\uD83C\uDF19", 0, 5, 0, 0, 3)
+                    CategoryStatistic("Sholat Fardhu", "masjid", 2, 5, 40, 0, 0),
+                    CategoryStatistic("Sholat Sunnah", "sun", 1, 7, 14, 0, 1),
+                    CategoryStatistic("Puasa Wajib", "plate", 0, 1, 0, 0, 2),
+                    CategoryStatistic("Puasa Sunnah", "moon", 0, 5, 0, 0, 3)
                 )
             )
         )
+    }
+}
+
+@Composable
+private fun CategoryStatIcon(iconKey: String) {
+    when (iconKey) {
+        "masjid", "\uD83D\uDD4C" -> {
+            Icon(
+                painter = painterResource(id = R.drawable.masjid),
+                contentDescription = "Masjid",
+                tint = Color.Black,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        "sun", "\u2600\uFE0F" -> Icon(Icons.Filled.WbSunny, contentDescription = null, tint = Emerald, modifier = Modifier.size(20.dp))
+        "plate", "\uD83C\uDF7D\uFE0F" -> Icon(Icons.Filled.Restaurant, contentDescription = null, tint = Emerald, modifier = Modifier.size(20.dp))
+        "moon", "\uD83C\uDF19" -> Icon(Icons.Filled.DarkMode, contentDescription = null, tint = Emerald, modifier = Modifier.size(20.dp))
+        else -> Icon(Icons.Filled.BarChart, contentDescription = null, tint = Emerald, modifier = Modifier.size(20.dp))
     }
 }
